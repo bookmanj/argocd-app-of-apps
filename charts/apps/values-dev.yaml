@@ -1,0 +1,26 @@
+global:
+  env: dev
+  helmDefault: true
+  valuesFile: values.yaml
+  destinations:
+    - name: platform-dev
+  source:
+    repoURL: https://github.com/bookmanj/argocd-app-of-apps.git
+    targetRevision: HEAD
+
+argocdApplications:
+  argo-rollouts:
+    namespace: argo-rollouts
+    project: addons
+    # targetRevision: HEAD
+    # helm: true
+    # disableAutomated: false
+    # disable: false
+
+  kube-prometheus-stack:
+    namespace: monitoring
+    project: addons
+    # targetRevision: HEAD
+    # helm: true
+    # disableAutomated: false
+    # disable: true

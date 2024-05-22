@@ -29,12 +29,42 @@
             bump_each_commit: false
             fallback: "0.1.0"
   
+        - name: Update Prerelease Tag
+          if: github.event_name == 'pull_request' && github.event.action != 'closed' && success()
+          run: |
+            echo "VERSION = ${VERSION}"
+            for i in $(ls -1 charts/apps/values*); do 
+              value="${VERSION}" yq -i '.global.source.targetRevision = strenv(value)' "${i}"
+              echo "#######################"
+              echo "cat ${i}"
+              echo "#######################"
+              cat "${i}"
+              echo ""
+            done
+          env:
+            VERSION: "v${{ steps.calc_version.outputs.version }}"
+
         - name: Create Prerelease Tag
           if: github.event_name == 'pull_request' && github.event.action != 'closed' && success()
           uses: EndBug/latest-tag@latest
           with:
             tag-name: "v${{ steps.calc_version.outputs.version }}"
   
+        - name: Update Release Tag
+          if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && success()
+          run: |
+            echo "VERSION = ${VERSION}"
+            for i in $(ls -1 charts/apps/values*); do 
+              value="${VERSION}" yq -i '.global.source.targetRevision = strenv(value)' "${i}"
+              echo "#######################"
+              echo "cat ${i}"
+              echo "#######################"
+              cat "${i}"
+              echo ""
+            done
+          env:
+            VERSION: "${{ steps.calc_version.outputs.version_tag }}"
+
         - name: Create Release Tag
           if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && success()
           uses: EndBug/latest-tag@latest
