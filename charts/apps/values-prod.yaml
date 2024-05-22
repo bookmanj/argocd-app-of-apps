@@ -1,0 +1,18 @@
+global:
+  env: prod
+  helmDefault: true
+  valuesFile: values.yaml
+  destinations:
+    - name: platform-prod
+    - name: platformus-prod
+  source:
+    repoURL: https://github.com/bookmanj/argocd-app-of-apps.git
+    targetRevision: HEAD
+
+argocdApplications:
+  argo-rollouts:
+    namespace: argo-rollouts
+    project: addons
+
+  kube-prometheus-stack:
+    namespace: monitoring
