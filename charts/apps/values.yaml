@@ -20,7 +20,7 @@ argocdApplications:
 
   kube-prometheus-stack:
     namespace: monitoring
-    # project: addons
+    project: addons
     # targetRevision: HEAD
     # helm: true
     # disableAutomated: false

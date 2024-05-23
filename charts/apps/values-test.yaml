@@ -16,3 +16,4 @@ argocdApplications:
 
   kube-prometheus-stack:
     namespace: monitoring
+    project: addons
