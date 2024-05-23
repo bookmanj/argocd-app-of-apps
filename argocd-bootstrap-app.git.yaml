@@ -28,11 +28,11 @@ spec:
         namespace: 'argocd'
       project: default
       source:
-        chart: charts/apps
-        repoURL: akuitypoc.azurecr.io        
+        path: charts/apps
+        repoURL: https://github.com/bookmanj/argocd-app-of-apps.git
         targetRevision: "{{ .values.gitver }}"
         helm:
           valueFiles:
             - values-{{ .values.ring }}.yaml
-      # syncPolicy:
-      #   automated: {}
+      syncPolicy:
+        automated: {}
