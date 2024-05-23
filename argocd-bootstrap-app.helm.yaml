@@ -35,4 +35,7 @@ spec:
           valueFiles:
             - values-{{ .values.ring }}.yaml
       syncPolicy:
-        automated: {}
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: true
