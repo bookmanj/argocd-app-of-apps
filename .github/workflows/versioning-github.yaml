@@ -49,7 +49,7 @@
             echo "VERSION = ${VERSION}"
             echo "CHART_DEST = ${CHART_DEST}"
             echo "------------------------------"
-            cp -a ${CHART_SORCE} ${temp_dir}
+            cp -a ${CHART_SORCE} ${TEMP_DIR}
             cd ${CHART_DEST}
             for i in $(ls -1 values*); do
               value="${VERSION}" yq -i '.global.source.targetRevision = strenv(value)' "${i}"
