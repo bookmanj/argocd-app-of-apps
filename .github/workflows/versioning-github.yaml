@@ -1,0 +1,110 @@
+---
+  name: Semantic Versioning and Tagging for GitHub Flow
+
+  on:
+    pull_request:
+      types: [opened, synchronize, reopened, closed]
+      branches:
+        - main
+    workflow_call:
+
+  jobs:
+    version-tagging:
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+        pull-requests: read
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+          with:
+            fetch-depth: 0
+
+        - name: Calculate Semantic Version
+          id: calc_version
+          uses: paulhatch/semantic-version@v5.4.0
+          with:
+            tag_prefix: "v"
+            version_format: "${major}.${minor}.${patch}${{ (github.event_name == 'pull_request' && github.event.action != 'closed') && '-prerelease' }}"
+            bump_each_commit: false
+            fallback: "0.1.0"
+
+        - name: Prep Helm Environment variables
+          run: |
+            CHART="apps"
+            REPO="charts"
+            echo "------------------------------"
+            echo "TEMP_DIR=$(mktemp -d)" | tee -a $GITHUB_ENV
+            echo "CHART=${CHART}" | tee -a $GITHUB_ENV
+            echo "CHART_SORCE=${REPO}/${CHART}" | tee -a $GITHUB_ENV
+            echo "REGISTRY=akuitypoc.azurecr.io" | tee -a $GITHUB_ENV
+            echo "REPO=${REPO}" | tee -a $GITHUB_ENV
+            echo "------------------------------"
+
+        - name: Update Prerelease Tag
+          if: github.event_name == 'pull_request' && github.event.action != 'closed' && success()
+          run: |
+            CHART_DEST="${TEMP_DIR}/${CHART}"
+            echo "------------------------------"
+            echo "VERSION = ${VERSION}"
+            echo "CHART_DEST = ${CHART_DEST}"
+            echo "------------------------------"
+            cp -a ${CHART_SORCE} ${TEMP_DIR}
+            cd ${CHART_DEST}
+            for i in $(ls -1 values*); do
+              value="${VERSION}" yq -i '.global.source.targetRevision = strenv(value)' "${i}"
+              echo "#######################"
+              echo "${i}"
+              echo "#######################"
+              cat "${i}"
+              echo ""
+            done
+            cd -
+            az login --service-principal -u ${{ secrets.ABBYY_CORE_POC_APP_CID }} -p ${{ secrets.ABBYY_CORE_POC_APP_PWD }} --tenant ${{ secrets.TENANT_ID }}
+            az acr login -n ${REGISTRY}
+            PACKAGED_CHART=$(helm package ${CHART_DEST} --version "${VERSION}" -d ${TEMP_DIR} | cut -d":" -f2 | tr -d '[:space:]')
+            helm push ${PACKAGED_CHART} oci://${REGISTRY}/${REPO}
+          env:
+            VERSION: "v${{ steps.calc_version.outputs.version }}"
+
+        - name: Create Prerelease Tag
+          if: github.event_name == 'pull_request' && github.event.action != 'closed' && success()
+          uses: EndBug/latest-tag@latest
+          with:
+            tag-name: "v${{ steps.calc_version.outputs.version }}"
+
+        - name: Update Release Tag
+          if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && success()
+          run: |
+            CHART_DEST="${TEMP_DIR}/${CHART}"
+            echo "------------------------------"
+            echo "VERSION = ${VERSION}"
+            echo "CHART_DEST = ${CHART_DEST}"
+            echo "------------------------------"
+            cp -a ${CHART_SORCE} ${temp_dir}
+            cd ${CHART_DEST}
+            for i in $(ls -1 values*); do
+              value="${VERSION}" yq -i '.global.source.targetRevision = strenv(value)' "${i}"
+              echo "#######################"
+              echo "${i}"
+              echo "#######################"
+              cat "${i}"
+              echo ""
+            done
+            cd -
+            az login --service-principal -u ${{ secrets.ABBYY_CORE_POC_APP_CID }} -p ${{ secrets.ABBYY_CORE_POC_APP_PWD }} --tenant ${{ secrets.TENANT_ID }}
+            az acr login -n ${REGISTRY}
+            PACKAGED_CHART=$(helm package ${CHART_DEST} --version "${VERSION}" -d ${TEMP_DIR} | cut -d":" -f2 | tr -d '[:space:]')
+            helm push ${PACKAGED_CHART} oci://${REGISTRY}/${REPO}
+          env:
+            VERSION: "${{ steps.calc_version.outputs.version_tag }}"
+
+        - name: Create Release Tag
+          if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && success()
+          uses: EndBug/latest-tag@latest
+          with:
+            tag-name: ${{ steps.calc_version.outputs.version_tag }}
+
+        - name: Create Latest Tag
+          if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && success()
+          uses: EndBug/latest-tag@latest

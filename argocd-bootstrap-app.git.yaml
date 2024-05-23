@@ -1,0 +1,38 @@
+---
+# argocd appset create <path_to_file> --grpc-web --upsert
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bootstrap
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - {key: 'akuity.io/argo-cd-cluster-name', operator: NotIn, values: [in-cluster]}
+          matchLabels:
+            stamp: platform
+        values:
+          gitver: '{{ index .metadata.labels "gitver" }}'
+          stamp: '{{ index .metadata.labels "stamp" }}'
+          ring: '{{ index .metadata.labels "ring" }}'
+          region: '{{ index .metadata.labels "region" }}'
+  template:
+    metadata:
+      name: argocd-{{ .values.stamp }}-{{ .values.ring }}-{{ .values.region }}
+    spec:
+      destination:
+        name: 'in-cluster'
+        namespace: 'argocd'
+      project: default
+      source:
+        path: charts/apps
+        repoURL: https://github.com/bookmanj/argocd-app-of-apps.git
+        targetRevision: "{{ .values.gitver }}"
+        helm:
+          valueFiles:
+            - values-{{ .values.ring }}.yaml
+      syncPolicy:
+        automated: {}

@@ -1,3 +1,4 @@
+---
 global:
   env: preview
   helmDefault: true
@@ -15,3 +16,4 @@ argocdApplications:
 
   kube-prometheus-stack:
     namespace: monitoring
+    project: addons

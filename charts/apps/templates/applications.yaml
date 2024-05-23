@@ -6,8 +6,10 @@ kind: Application
 metadata:
   name: {{ $app }}-{{ $dest.name }}
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
-  project: {{ .project }} 
+  project: {{ .project }}
   source:
     repoURL:  {{ $.Values.global.source.repoURL }}
     targetRevision: {{ default $.Values.global.source.targetRevision .targetRevision }}
@@ -23,9 +25,8 @@ spec:
   syncPolicy:
     {{- if not .disableAutomated }}
     automated:
-      prune: false
+      prune: true
       selfHeal: true
-      allowEmpty: false
     {{- end }}
     retry:
       limit: 5
